@@ -20,3 +20,23 @@ def confirm_required(func):
         return func(*args, **kwargs)
 
     return decorated_function
+
+
+def permission_required(permission_name):
+    """该装饰器用来验证访问某个视图的用户是否有对应的权限"""
+
+    def decorator(func):
+        @wraps(func)
+        def decorated_function(*args, **kwargs):
+            if not current_user.can(permission_name):
+                abort(403)
+            return func(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
+
+
+def admin_required(func):
+    """该装饰器用来验证访问某个视图的用户是否具有管理员权限"""
+    return permission_required('ADMINISTER')(func)

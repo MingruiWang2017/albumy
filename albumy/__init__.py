@@ -7,7 +7,7 @@ from albumy.blueprints.auth import auth_bp
 from albumy.blueprints.main import main_bp
 from albumy.blueprints.user import user_bp
 from albumy.extensions import bootstrap, db, login_manager, mail, moment
-from albumy.models import User
+from albumy.models import User, Role, Permission
 from albumy.settings import config
 
 
@@ -95,6 +95,9 @@ def register_commands(app: Flask):
         click.echo('Initializing the database...')
         db.create_all()
 
+        click.echo('Initializing the roles and permissions...')
+        Role.init_role()
+
         click.echo('Done.')
 
     @app.cli.command()
@@ -107,6 +110,8 @@ def register_commands(app: Flask):
         db.drop_all()
         db.create_all()
 
+        click.echo('Initializing the roles and permissions...')
+        Role.init_role()
         click.echo('Generating the administrator...')
         fake_admin()
         click.echo('Generating %d users...' % user)
