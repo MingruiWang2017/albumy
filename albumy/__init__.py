@@ -2,12 +2,13 @@ import os
 
 import click
 from flask import Flask, render_template
+from flask_wtf.csrf import CSRFError
 
 from albumy.blueprints.auth import auth_bp
 from albumy.blueprints.main import main_bp
 from albumy.blueprints.user import user_bp
-from albumy.extensions import bootstrap, db, login_manager, mail, moment
-from albumy.models import User, Role, Permission
+from albumy.extensions import bootstrap, db, login_manager, mail, moment, dropzone, csrf
+from albumy.models import User, Role, Permission, Photo
 from albumy.settings import config
 
 
@@ -32,9 +33,11 @@ def create_app(config_name=None):
 def register_extensions(app: Flask):
     bootstrap.init_app(app)
     db.init_app(app)
+    dropzone.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
     moment.init_app(app)
+    csrf.init_app(app)
 
 
 def register_blueprints(app: Flask):
@@ -46,7 +49,7 @@ def register_blueprints(app: Flask):
 def register_shell_context(app: Flask):
     @app.shell_context_processor
     def make_shell_context():
-        return dict(db=db, User=User)
+        return dict(db=db, User=User, Photo=Photo)
 
 
 def register_template_context(app: Flask):
@@ -76,6 +79,10 @@ def register_errorhandlers(app: Flask):
     def internal_server_error(e):
         return render_template('errors/500.html'), 500
 
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        return render_template('errors/400.html', description=e.description), 400
+
 
 def register_commands(app: Flask):
     @app.cli.command()
@@ -102,10 +109,11 @@ def register_commands(app: Flask):
 
     @app.cli.command()
     @click.option('--user', default=10, help='Quantity of users, default is 10.')
-    def forge(user):
+    @click.option('--photo', default=30, help='Quantity of photos, default is 30.')
+    def forge(user, photo):
         """Generate fake data."""
 
-        from albumy.fakes import fake_admin, fake_user
+        from albumy.fakes import fake_admin, fake_user, fake_photo
 
         db.drop_all()
         db.create_all()
@@ -116,4 +124,6 @@ def register_commands(app: Flask):
         fake_admin()
         click.echo('Generating %d users...' % user)
         fake_user(user)
+        click.echo('Generating %d photos...' % photo)
+        fake_photo(photo)
         click.echo('Done.')

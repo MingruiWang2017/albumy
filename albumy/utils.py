@@ -1,3 +1,7 @@
+import os
+import uuid
+from PIL import Image
+
 from urllib.parse import urljoin, urlparse
 from flask import request, redirect, url_for, flash, current_app
 from itsdangerous import TimedSerializer as Serializer
@@ -46,6 +50,28 @@ def validate_token(user, token, operation, new_password=None):
 
     db.session.commit()
     return True
+
+
+def rename_image(old_filename):
+    ext = os.path.splitext(old_filename)[1]
+    new_filename = uuid.uuid4().hex + ext
+    return new_filename
+
+
+def resize_image(image, filename, base_width):
+    """为用户上传的图片生成缩略图， base_width表示缩略图的宽"""
+    filename, ext = os.path.splitext(filename)
+    img = Image.open(image)
+    if img.size[0] <= base_width:
+        return filename + ext  # 对于小图，不做处理
+    w_percent = base_width / float(img.size[0])  # 宽的缩略比
+    h_size = int(float(img.size[1]) * float(w_percent))  # 对高做同样比例的计算
+    img = img.resize((base_width, h_size), Image.ANTIALIAS)  # 使用抗锯齿缩放
+
+    filename += current_app.config['ALBUMY_PHOTO_SUFFIX'][base_width] + ext
+    img.save(os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename),
+             optimize=True, quality=85)
+    return filename
 
 
 def is_safe_url(target):

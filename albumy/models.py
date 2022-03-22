@@ -70,6 +70,8 @@ class User(db.Model, UserMixin):
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
     role = db.relationship('Role', back_populates='users')
 
+    photos = db.relationship('Photo', back_populates='author', cascade='all')
+
     def __init__(self, **kwargs):
         """初始化用户对象时自动添加默认的User角色"""
         super(User, self).__init__(**kwargs)
@@ -99,3 +101,15 @@ class User(db.Model, UserMixin):
         """判断用户是否具有某项权限"""
         permission = Permission.query.filter_by(name=permission_name).first()
         return permission and self.role and permission in self.role.permissions
+
+
+class Photo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.String(500))
+    filename = db.Column(db.String(64))
+    filename_s = db.Column(db.String(64), comment='小尺寸缩略图文件名，400px')
+    filename_m = db.Column(db.String(64), comment='中等尺寸缩略图文件名，800px')
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    author = db.relationship('User', back_populatest='photos')
