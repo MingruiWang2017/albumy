@@ -1,3 +1,4 @@
+from flask_avatars import Avatars
 from flask_bootstrap import Bootstrap4
 from flask_dropzone import Dropzone
 from flask_login import LoginManager, AnonymousUserMixin
@@ -6,6 +7,7 @@ from flask_mail import Mail
 from flask_moment import Moment
 from flask_wtf import CSRFProtect
 
+avatars = Avatars()
 bootstrap = Bootstrap4()
 db = SQLAlchemy()
 dropzone = Dropzone()

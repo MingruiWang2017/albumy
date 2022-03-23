@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from flask import current_app
+from flask_avatars import Identicon
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -64,6 +65,10 @@ class User(db.Model, UserMixin):
     bio = db.Column(db.String(120), comment='个人经历')
     location = db.Column(db.String(50))
     member_since = db.Column(db.DateTime, default=datetime.utcnow, comment='用户注册时间')
+    # 3种不同尺寸的头像
+    avatar_s = db.Column(db.String(64))
+    avatar_m = db.Column(db.String(64))
+    avatar_l = db.Column(db.String(64))
 
     confirmed = db.Column(db.Boolean, default=False, comment='用户是否已通过邮箱验证')
 
@@ -75,6 +80,7 @@ class User(db.Model, UserMixin):
     def __init__(self, **kwargs):
         """初始化用户对象时自动添加默认的User角色"""
         super(User, self).__init__(**kwargs)
+        self.generate_avatar()
         self.set_role()
 
     def set_role(self):
@@ -91,6 +97,15 @@ class User(db.Model, UserMixin):
 
     def validate_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def generate_avatar(self):
+        avatar = Identicon()
+        # 生成三种尺寸的头像保存到AVATARS_SAVE_PATH，返回文件名
+        filenames = avatar.generate(text=self.username)
+        self.avatar_s = filenames[0]
+        self.avatar_m = filenames[1]
+        self.avatar_l = filenames[2]
+        db.session.commit()
 
     @property
     def is_admin(self):
