@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from flask import current_app
@@ -76,6 +77,7 @@ class User(db.Model, UserMixin):
     role = db.relationship('Role', back_populates='users')
 
     photos = db.relationship('Photo', back_populates='author', cascade='all')
+    comments = db.relationship('Comment', back_populates='author', cascade='all')
 
     def __init__(self, **kwargs):
         """初始化用户对象时自动添加默认的User角色"""
@@ -86,7 +88,7 @@ class User(db.Model, UserMixin):
     def set_role(self):
         """设置默认角色"""
         if self.role is None:
-            if self.email == current_app.conifg['ALBUMY_ADMIN_EMAIL']:
+            if self.email == current_app.config['ALBUMY_ADMIN_EMAIL']:
                 self.role = Role.query.filter_by(name='Administrator').first()
             else:
                 self.role = Role.query.filter_by(name='User').first()
@@ -118,6 +120,12 @@ class User(db.Model, UserMixin):
         return permission and self.role and permission in self.role.permissions
 
 
+# pohot与tag之间的多对多关系表
+tagging = db.Table('tagging',
+                   db.Column('photo_id', db.Integer, db.ForeignKey('photo.id')),
+                   db.Column('tag_id', db.Integer, db.ForeignKey('tag.id')))
+
+
 class Photo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(500))
@@ -125,6 +133,45 @@ class Photo(db.Model):
     filename_s = db.Column(db.String(64), comment='小尺寸缩略图文件名，400px')
     filename_m = db.Column(db.String(64), comment='中等尺寸缩略图文件名，800px')
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    can_comment = db.Column(db.Boolean, default=True, comment='图片能否评论')
+    flag = db.Column(db.Integer, default=0, comment='图片被举报次数计数器')
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     author = db.relationship('User', back_populatest='photos')
+    comments = db.relationship('Comment', back_populates='photo', cascade='all')
+    tags = db.relationship('Tag', secondary=tagging, back_populates='photos')
+
+
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), index=True, unique=True)
+
+    photos = db.relationship('Photo', secondary=tagging, back_populates='tags')
+
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    flag = db.Column(db.Integer, default=0, comment='评论被举报次数计数器')
+
+    # 外键：被回复的评论的id, 本评论的用户id， 被评论的图片的id
+    replied_id = db.Column(db.Integer, db.ForeignKey('comment.id'))
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    photo_id = db.Column(db.Integer, db.ForeignKey('photo.id'))
+    # 关系属性: 被评论的图片，评论用户，本评论的回复，被本条评论回复的评论
+    photo = db.relationship('Photo', back_populates='comments')
+    author = db.relationship('User', back_populates='comments')
+    replies = db.relationship('Comment', back_populates='replied', cascade='all')
+    replied = db.relationship('Comment', back_populates='replies', remote_sid=[id])
+
+
+@db.event.listens_for(Photo, 'after_delete', named=True)
+def delete_photo(**kwargs):
+    """监听数据库事件，当Photo模型中记录被删除时，到图片目录下删除对应文件"""
+    target = kwargs['target']  # 获取photo对象
+    for filename in [target.filename, target.filename_s, target.filename_m]:
+        path = os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename)
+        if os.path.exists(path):  # 验证文件是否存在，因为小图片不会生成缩略图
+            os.remove(path)
+   
