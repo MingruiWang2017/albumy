@@ -9,7 +9,7 @@ from albumy.blueprints.auth import auth_bp
 from albumy.blueprints.main import main_bp
 from albumy.blueprints.user import user_bp
 from albumy.extensions import bootstrap, db, login_manager, mail, moment, dropzone, csrf, avatars
-from albumy.models import User, Role, Permission, Photo, Tag, Comment
+from albumy.models import User, Role, Permission, Photo, Tag, Comment, Collect
 from albumy.settings import config
 
 
@@ -52,7 +52,7 @@ def register_blueprints(app: Flask):
 def register_shell_context(app: Flask):
     @app.shell_context_processor
     def make_shell_context():
-        return dict(db=db, User=User, Photo=Photo, Tag=Tag, Comment=Comment)
+        return dict(db=db, User=User, Photo=Photo, Tag=Tag, Comment=Comment, Collect=Collect)
 
 
 def register_template_context(app: Flask):
@@ -114,11 +114,12 @@ def register_commands(app: Flask):
     @click.option('--user', default=10, help='Quantity of users, default is 10.')
     @click.option('--photo', default=30, help='Quantity of photos, default is 30.')
     @click.option('--tag', default=20, help='Quantity of tags, default is 20.')
+    @click.option('--collect', default=50, help='Quantity of collects, default is 50.')
     @click.option('--comment', default=100, help='Quantity of comments, default is 100.')
-    def forge(user, photo, tag, comment):
+    def forge(user, photo, tag, collect, comment):
         """Generate fake data."""
 
-        from albumy.fakes import fake_admin, fake_user, fake_photo, fake_tag, fake_comment
+        from albumy.fakes import fake_admin, fake_user, fake_photo, fake_tag, fake_comment, fake_collect
 
         db.drop_all()
         db.create_all()
@@ -133,6 +134,8 @@ def register_commands(app: Flask):
         fake_tag(tag)
         click.echo('Generating %d photos...' % photo)
         fake_photo(photo)
+        click.echo('Generating %d collects...' % photo)
+        fake_collect(collect)
         click.echo('Generating %d comments...' % comment)
         fake_comment(comment)
 

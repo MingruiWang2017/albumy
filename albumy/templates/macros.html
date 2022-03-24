@@ -1,11 +1,22 @@
 {% macro photo_card(photo) %}
-<!--以固定宽度显示图片的宏-->
 <div class="photo-card card">
     <a class="card-thumbnail" href="{{ url_for('main.show_photo', photo_id=photo.id) }}">
         <img class="card-img-top portrait" src="{{ url_for('main.get_image', filename=photo.filename_s) }}">
     </a>
     <div class="card-body">
+        <span class="oi oi-star"></span> {{ photo.collectors|length }}
         <span class="oi oi-comment-square"></span> {{ photo.comments|length }}
     </div>
+</div>
+{% endmacro %}
+
+{% macro user_card(user) %}
+<div class="user-card text-center">
+    <a href="{{ url_for('user.index', username=user.username) }}">
+        <img class="rounded avatar-m" src="{{ url_for('main.get_avatar', filename=user.avatar_m) }}">
+    </a>
+    <h6>
+        <a href="{{ url_for('user.index', username=user.username) }}">{{ user.name }}</a>
+    </h6>
 </div>
 {% endmacro %}

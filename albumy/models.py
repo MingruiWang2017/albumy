@@ -56,6 +56,20 @@ class Role(db.Model):
         db.session.comit()
 
 
+class Collect(db.Model):
+    """关系模型，在User和Photo之间建一个收藏关系，它类似于关系表，但是可以储存额外字段，是一个中介"""
+    # 收藏者id
+    collector_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    # 收藏的photo
+    collected_id = db.Column(db.Integer, db.ForeignKey('photo.id'))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # 关系属性：收藏者和被收藏的图片, 使用lazy=joined进行预加载，对关系两侧的表进行联结操作，
+    # 最终获得的记录会包含已经预加载的collector和collected对象
+    collector = db.relationship('User', back_populates='collections', lazy='joined')
+    collected = db.relationship('Photo', back_populates='collectors', lazy='joined')
+
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, index=True)
@@ -78,6 +92,7 @@ class User(db.Model, UserMixin):
 
     photos = db.relationship('Photo', back_populates='author', cascade='all')
     comments = db.relationship('Comment', back_populates='author', cascade='all')
+    collections = db.relationship('Collect', back_populates='collector', cascade='all')
 
     def __init__(self, **kwargs):
         """初始化用户对象时自动添加默认的User角色"""
@@ -100,6 +115,22 @@ class User(db.Model, UserMixin):
     def validate_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def collect(self, photo):
+        if not self.is_collecting(photo):
+            collect = Collect(collector=self, collected=photo)
+            db.session.add(collect)
+            db.session.commit()
+
+    def uncollect(self, photo):
+        collect = Collect.query.with_parent(self).filter_by(collected_id=photo.id).first()
+        if collect:
+            db.session.delete(collect)
+            db.session.commit()
+
+    def is_collecting(self, photo):
+        """判断当前图片是否已经被收藏"""
+        return Collect.query.with_parent(self).filter_by(collected_id=photo.id).first() is not None
+
     def generate_avatar(self):
         avatar = Identicon()
         # 生成三种尺寸的头像保存到AVATARS_SAVE_PATH，返回文件名
@@ -120,7 +151,7 @@ class User(db.Model, UserMixin):
         return permission and self.role and permission in self.role.permissions
 
 
-# pohot与tag之间的多对多关系表
+# photo与tag之间的多对多关系表
 tagging = db.Table('tagging',
                    db.Column('photo_id', db.Integer, db.ForeignKey('photo.id')),
                    db.Column('tag_id', db.Integer, db.ForeignKey('tag.id')))
@@ -139,6 +170,7 @@ class Photo(db.Model):
 
     author = db.relationship('User', back_populatest='photos')
     comments = db.relationship('Comment', back_populates='photo', cascade='all')
+    collectors = db.relationship('Collect', back_populates='collected', cascade='all')
     tags = db.relationship('Tag', secondary=tagging, back_populates='photos')
 
 
@@ -174,4 +206,3 @@ def delete_photo(**kwargs):
         path = os.path.join(current_app.config['ALBUMY_UPLOAD_PATH'], filename)
         if os.path.exists(path):  # 验证文件是否存在，因为小图片不会生成缩略图
             os.remove(path)
-   
