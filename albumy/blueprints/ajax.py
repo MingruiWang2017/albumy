@@ -49,7 +49,8 @@ def follow(username):
         return jsonify(message='Already followed.'), 400
 
     current_user.follow(user)
-    push_follow_notification(follower=current_user, receiver=user)  # 推送关注消息
+    if user.receive_follow_notification:
+        push_follow_notification(follower=current_user, receiver=user)  # 推送关注消息
     return jsonify(message='User followed.')
 
 

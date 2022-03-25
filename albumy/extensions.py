@@ -29,6 +29,10 @@ login_manager.login_view = 'auth.login'  # 未登录用户跳转的登录视图
 login_manager.login_message = '请登录后执行操作'  # 未登录用户接收的提示信息
 login_manager.login_message_category = 'waring'  # 提示信息的分类
 
+login_manager.refresh_view = 'auth.re_authenticate'  # 用户激活“活跃状态”的视图函数
+login_manager.needs_refresh_message = '为了您的账户安全，请重新登陆'  # 用户状态unfresh时的提示
+login_manager.needs_refresh_message_category = 'warning'
+
 
 class Guest(AnonymousUserMixin):
     """继承匿名用户类，即访客

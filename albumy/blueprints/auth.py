@@ -27,6 +27,20 @@ def login():
     return render_template('auth/login.html', form=form)
 
 
+@auth_bp.route('/re-authenticate', methods=['GET', 'POST'])
+@login_required
+def re_authenticate():
+    """重新登陆激活fresh状态"""
+    if login_fresh():  # 判断用户状态是否fresh
+        return redirect(url_for('main.index'))
+
+    form = LoginForm()
+    if form.validate_on_submit() and current_user.validate_password(form.password.data):
+        confirm_login()  # 将用户状态设为fresh
+        return redirect_back()
+    return render_template('auth/login.html', form=form)
+
+
 @auth_bp.route('/logout')
 @login_required
 def logout():

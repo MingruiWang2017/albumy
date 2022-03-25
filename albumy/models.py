@@ -101,8 +101,14 @@ class User(db.Model, UserMixin):
     avatar_s = db.Column(db.String(64))
     avatar_m = db.Column(db.String(64))
     avatar_l = db.Column(db.String(64))
+    avatar_raw = db.Column(db.String(64), comment='用户自定义上传的头像名')
 
     confirmed = db.Column(db.Boolean, default=False, comment='用户是否已通过邮箱验证')
+
+    public_collections = db.Column(db.Boolean, default=True, comment='公开收藏开关')
+    receive_comment_notification = db.Column(db.Boolean, default=True, comment='接收评论消息开关')
+    receive_follow_notification = db.Column(db.Boolean, default=True, comment='接收关注消息开关')
+    receive_collect_notification = db.Column(db.Boolean, default=True, comment='接收收藏消息开关')
 
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
     role = db.relationship('Role', back_populates='users')
@@ -250,6 +256,17 @@ class Notification(db.Model):
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     receiver = db.relationship('User', back_populates='notifications')
+
+
+@db.events.listens_for(User, 'after_delete', named=True)
+def delete_avatars(**kwargs):
+    """监听用户注销，删除用户后，自动删除用户头像文件图片"""
+    target = kwargs['target']
+    for filename in [target.avatar_s, target.avatar_m, target.avatar_l, target.avatar_raw]:
+        if filename is not None:  # 用户如果没自定义图像，avatar_raw则为空
+            path = os.path.join(current_app.config['AVATARS_SAVE_PATH'], filename)
+            if os.path.exists(path):
+                os.remove(path)
 
 
 @db.event.listens_for(Photo, 'after_delete', named=True)
