@@ -70,6 +70,23 @@ class Collect(db.Model):
     collected = db.relationship('Photo', back_populates='collectors', lazy='joined')
 
 
+class Follow(db.Model):
+    """自引用的多对多关系模型，关注者和被关注者都是User, 这里设置了两个主键"""
+    # 关注者（关注我的人）
+    follower_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    # 被关注者（我关注的人）
+    followed_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # 关系属性：这两个字段定义的外键都指向user.id，在建立反向关系时，SQLAlchemy无法判断哪个外键对应哪个关系属性，
+    # 所以需要使用foreign_keys参数来明确对应的字段。这会导致在查询时无法通过with_parent()方法进行筛选，但是可以直接使用
+    # follower和followed属性获取对应的用户对象。
+    # 关注我的人
+    follower = db.relationship('User', foreign_keys=[follower_id], back_populates='following', lazy='joined')
+    # 我关注的人
+    followed = db.relationship('User', foreign_keys=[followed_id], back_populates='followers', lazy='joined')
+
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, index=True)
@@ -93,6 +110,10 @@ class User(db.Model, UserMixin):
     photos = db.relationship('Photo', back_populates='author', cascade='all')
     comments = db.relationship('Comment', back_populates='author', cascade='all')
     collections = db.relationship('Collect', back_populates='collector', cascade='all')
+    following = db.relationship('Follow', foreign_keys=[Follow.follwer_id], back_populates='follower',
+                                lazy='dynamic', cascade='all')  # 我正在关注的人
+    followers = db.relationship('Follow', foreign_keys=[Follow.followed_id], back_populates='followed',
+                                lazy='dynamic', cascade='all')  # 关注我的人
 
     def __init__(self, **kwargs):
         """初始化用户对象时自动添加默认的User角色"""
@@ -114,6 +135,27 @@ class User(db.Model, UserMixin):
 
     def validate_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def follow(self, user):
+        """关注用户user"""
+        if not self.is_following(user):
+            follow = Follow(follower=self, followed=user)
+            db.session.add(follow)
+            db.session.commit()
+
+    def unfollow(self, user):
+        follow = self.following.filter_by(followed_id=user.id).first()
+        if follow:
+            db.session.delete(follow)
+            db.session.commit()
+
+    def is_following(self, user):
+        if user.id is None:  # 用户默认对自己进行关注，当关注自己时， 数据还没写入数据库，查不到user.id，所以直接返回False
+            return False
+        return self.following.filter_by(followed_id=user.id).first() is not None
+
+    def is_followed_by(self, user):
+        return self.followers.filter_by(follower_id=user.id).first() is not None
 
     def collect(self, photo):
         if not self.is_collecting(photo):
