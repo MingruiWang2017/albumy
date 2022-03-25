@@ -2,6 +2,7 @@ import os
 
 import click
 from flask import Flask, render_template
+from flask_login import current_user
 from flask_wtf.csrf import CSRFError
 
 from albumy.blueprints.ajax import ajax_bp
@@ -9,7 +10,7 @@ from albumy.blueprints.auth import auth_bp
 from albumy.blueprints.main import main_bp
 from albumy.blueprints.user import user_bp
 from albumy.extensions import bootstrap, db, login_manager, mail, moment, dropzone, csrf, avatars
-from albumy.models import User, Role, Permission, Photo, Tag, Comment, Collect, Follow
+from albumy.models import User, Role, Permission, Photo, Tag, Comment, Collect, Follow, Notification
 from albumy.settings import config
 
 
@@ -53,13 +54,19 @@ def register_shell_context(app: Flask):
     @app.shell_context_processor
     def make_shell_context():
         return dict(db=db, User=User, Photo=Photo, Tag=Tag,
-                    Comment=Comment, Collect=Collect, Follow=Follow)
+                    Comment=Comment, Collect=Collect, Follow=Follow,
+                    Notification=Notification)
 
 
 def register_template_context(app: Flask):
     @app.context_processor
     def make_template_context():
-        pass
+        # 查询当前用户的未读消息数量，作为模板全局变量使用
+        if current_user.is_authenticated:
+            notification_count = Notification.query.with_parent(current_user).filter_by(is_read=False).count()
+        else:
+            notification_count = None
+        return dict(notification_count=notification_count)
 
 
 def register_errorhandlers(app: Flask):

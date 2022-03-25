@@ -1,7 +1,6 @@
 $(function () {
     var default_error_message = 'Server error, please try again later.';
 
-    //为ajax发送的POST站内请求添加csrf token header
     $.ajaxSetup({
         beforeSend: function (xhr, settings) {
             if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
@@ -9,7 +8,7 @@ $(function () {
             }
         }
     });
-    //全局错误处理方法
+
     $(document).ajaxError(function (event, request, settings) {
         var message = null;
         if (request.responseJSON && request.responseJSON.hasOwnProperty('message')) {
@@ -102,6 +101,22 @@ $(function () {
         });
     }
 
+    function update_notifications_count() {
+        var $el = $('#notification-badge');
+        $.ajax({
+            type: 'GET',
+            url: $el.data('href'),
+            success: function (data) {
+                if (data.count === 0) {
+                    $('#notification-badge').hide();
+                } else {
+                    $el.show();
+                    $el.text(data.count)
+                }
+            }
+        });
+    }
+
     function follow(e) {
         var $el = $(e.target);
         var id = $el.data('id');
@@ -160,6 +175,10 @@ $(function () {
     $('#confirm-delete').on('show.bs.modal', function (e) {
         $('.delete-form').attr('action', $(e.relatedTarget).data('href'));
     });
+    //轮询：每间隔30秒调用更新消息数量方法获取未读消息数
+    if (is_authenticated) {
+        setInterval(update_notifications_count, 30000);
+    }
 
     $("[data-toggle='tooltip']").tooltip({title: moment($(this).data('timestamp')).format('lll')})
 

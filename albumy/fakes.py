@@ -7,7 +7,7 @@ from flask import current_app
 from sqlalchemy.exc import IntegrityError
 
 from albumy.extensions import db
-from albumy.models import User, Photo, Tag, Comment
+from albumy.models import User, Photo, Tag, Comment, Notification
 
 fake = Faker()
 
@@ -21,6 +21,8 @@ def fake_admin():
         website='https://jack.com',
         confirmed=True)
     admin.set_password('helloflask')
+    notification = Notification(message='Hello, welcome to Albumy.', receiver=admin)
+    db.session.add(notification)
     db.session.add(admin)
     db.session.commit()
 
