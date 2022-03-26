@@ -9,7 +9,7 @@ from albumy.blueprints.ajax import ajax_bp
 from albumy.blueprints.auth import auth_bp
 from albumy.blueprints.main import main_bp
 from albumy.blueprints.user import user_bp
-from albumy.extensions import bootstrap, db, login_manager, mail, moment, dropzone, csrf, avatars
+from albumy.extensions import bootstrap, db, login_manager, mail, moment, dropzone, csrf, avatars, whooshee
 from albumy.models import User, Role, Permission, Photo, Tag, Comment, Collect, Follow, Notification
 from albumy.settings import config
 
@@ -41,6 +41,7 @@ def register_extensions(app: Flask):
     mail.init_app(app)
     moment.init_app(app)
     csrf.init_app(app)
+    whooshee.init_app(app)
 
 
 def register_blueprints(app: Flask):
@@ -151,4 +152,11 @@ def register_commands(app: Flask):
         click.echo('Generating %d comments...' % comment)
         fake_comment(comment)
 
+        click.echo('Done.')
+
+    @app.cli.command()
+    def reindex():
+        """为whooshee重新创建索引"""
+        click.echo('Reindexing for database...')
+        whooshee.reindex()
         click.echo('Done.')

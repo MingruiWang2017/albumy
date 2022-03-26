@@ -5,6 +5,7 @@ from flask_login import LoginManager, AnonymousUserMixin
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
 from flask_moment import Moment
+from flask_whooshee import Whooshee
 from flask_wtf import CSRFProtect
 
 avatars = Avatars()
@@ -15,6 +16,7 @@ login_manager = LoginManager()
 mail = Mail()
 moment = Moment()
 csrf = CSRFProtect()
+whooshee = Whooshee()
 
 
 @login_manager.user_loader

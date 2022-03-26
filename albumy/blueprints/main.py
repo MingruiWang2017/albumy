@@ -8,9 +8,9 @@ from sqlalchemy.sql.expression import func
 from albumy.decorators import confirm_required, permission_required
 from albumy.extensions import db
 from albumy.forms.main import DescriptionForm, TagForm, CommentForm
-from albumy.models import Photo, Tag, Comment, Collect, Notification, Follow
+from albumy.models import User, Photo, Tag, Comment, Collect, Notification, Follow
 from albumy.notifications import push_comment_notification, push_collect_notification
-from albumy.utils import rename_image, resize_image, flash_errors
+from albumy.utils import rename_image, resize_image, flash_errors, redirect_back
 
 main_bp = Blueprint('main', __name__)
 
@@ -42,6 +42,26 @@ def explore():
     """随机显示12张图片"""
     photos = Photo.query.order_by(func.random()).limit(12)
     return render_template('main/explore.html', photos=photos)
+
+
+@main_bp.route('/search')
+def search():
+    q = request.args.get('q', '')
+    if q == '':
+        flash('Enter keyword about photo, user or tag.', 'warning')
+        return redirect_back()
+
+    category = request.args.get('category', 'photo')  # 搜索类别：photo, user, tag
+    page = request.args.get('page', 1, type=init)
+    per_page = current_app.config['ALBUMY_SEARCH_RESULT_PER_PAGE']
+    if category == 'user':
+        pagination = User.query.whooshee_search(q).pagination(page, per_page)
+    elif category == 'tag':
+        pagination = Tag.query.whooshee_search(q).pagination(page, per_page)
+    else:
+        pagination = Photo.query.whooshee_search(q).pagination(page, per_page)
+    results = pagination.items
+    return render_template('main/search.html', q=q, results=results, pagination=pagination, category=category)
 
 
 @main_bp.route('/notifications')

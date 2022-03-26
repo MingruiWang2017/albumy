@@ -58,6 +58,9 @@ class BaseConfig(object):
     DROPZONE_MAX_FILES = 30  # 单次最大上传数量
     DROPZONE_ENABLE_CSRF = True  # 开启CSRFProtector
 
+    WHOOSHEE_MIN_STRING_LEN = 1  # whooshee搜索关键字的最小长度
+
+
 class DevelopmentConfig(BaseConfig):
     SQLALCHEMY_DATABASE_URI = prefix + os.path.join(basedir, 'data-dev.db')
     REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost')
