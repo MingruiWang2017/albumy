@@ -3,11 +3,12 @@ import os
 from flask import Blueprint, render_template, current_app, request, \
     send_from_directory, abort, flash, redirect, url_for
 from flask_login import login_required, current_user
+from sqlalchemy.sql.expression import func
 
 from albumy.decorators import confirm_required, permission_required
 from albumy.extensions import db
 from albumy.forms.main import DescriptionForm, TagForm, CommentForm
-from albumy.models import Photo, Tag, Comment, Collect, Notification
+from albumy.models import Photo, Tag, Comment, Collect, Notification, Follow
 from albumy.notifications import push_comment_notification, push_collect_notification
 from albumy.utils import rename_image, resize_image, flash_errors
 
@@ -16,12 +17,31 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
-    return render_template('main/index.html')
+    """在主页显示当前用户关注的人最新上传的图片和最热门的10个tag"""
+    if current_user.is_authenticated:
+        page = request.args.get('page', 1, type=int)
+        per_page = current_app.config['ALBUMY_PHOTO_PER_PAGE']
+        # 依据Follow.followed_id == Photo.author_id联结Follow和Photo表，即图片作者是我的关注
+        # 然后根据关注者是当前用户进行筛选，最会根据图片时间排序、分页
+        pagination = Photo.query \
+            .join(Follow, Follow.followed_id == Photo.author_id) \
+            .filter(Follow.follower_id == current_user.id) \
+            .order_by(Photo.timestamp.desc()) \
+            .paginate(page, per_page)
+        photos = pagination.items
+    else:
+        pagination = None
+        photos = None
+    # 使用次数最多的10个标签, 联结Tag和Photo， 根据Tag的id进行分组，选出photo数量最多的10个tag
+    tags = Tag.query.join(Tag.photos).group_by(Tag.id).order_by(func.count(Photo.id).desc()).limit(10)
+    return render_template('main/index.html', pagination=pagination, photos=photos, tags=tags)
 
 
 @main_bp.route('/explore')
 def explore():
-    return render_template('main/explore.html')
+    """随机显示12张图片"""
+    photos = Photo.query.order_by(func.random()).limit(12)
+    return render_template('main/explore.html', photos=photos)
 
 
 @main_bp.route('/notifications')

@@ -164,6 +164,13 @@ class User(db.Model, UserMixin):
     def is_followed_by(self, user):
         return self.followers.filter_by(follower_id=user.id).first() is not None
 
+    @property
+    def followed_photos(self):
+        """获取关注用户的最新图片"""
+        # 使用内联方法，将Photo和Follow表联结，联结关系为Follow.followed_id==Photo.author_id（图片的作者是我的关注）
+        # 然后过滤出其中关注者id是当前用户的记录
+        return Photo.query.join(Follow, Follow.followed_id == Photo.author_id).filter(Follow.follower_id == self.id)
+
     def collect(self, photo):
         if not self.is_collecting(photo):
             collect = Collect(collector=self, collected=photo)
