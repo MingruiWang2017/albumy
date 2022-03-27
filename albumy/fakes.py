@@ -7,7 +7,7 @@ from flask import current_app
 from sqlalchemy.exc import IntegrityError
 
 from albumy.extensions import db
-from albumy.models import User, Photo, Tag, Comment, Notification
+from albumy.models import User, Photo, Tag, Comment, Notification, Role
 
 fake = Faker()
 
@@ -16,11 +16,12 @@ def fake_admin():
     admin = User(
         name='Jack Smith',
         username='Jack',
-        email='Jack@example.com',
+        email='jack@example.com',
         bio=fake.sentence(),
         website='https://jack.com',
         confirmed=True)
     admin.set_password('helloflask')
+    admin.role = Role.query.filter_by(name='Administrator').first()
     notification = Notification(message='Hello, welcome to Albumy.', receiver=admin)
     db.session.add(notification)
     db.session.add(admin)
@@ -64,7 +65,7 @@ def fake_tag(count=20):
 
 def fake_photo(count=30):
     """生成纯色图片"""
-    upload_path = current_app.config['ALBUMY_PHOTO_PATH']
+    upload_path = current_app.config['ALBUMY_UPLOAD_PATH']
     for i in range(count):
         print(i)
 
@@ -76,8 +77,8 @@ def fake_photo(count=30):
         photo = Photo(
             description=fake.text(),
             filename=filename,
-            filename_m=filename + '_m',
-            filename_s=filename + '_s',
+            filename_m=filename,
+            filename_s=filename,
             author=User.query.get(random.randint(1, User.query.count())),
             timestamp=fake.date_time_this_year()
         )
@@ -86,7 +87,7 @@ def fake_photo(count=30):
         for j in range(random.randint(1, 5)):
             tag = Tag.query.get(random.randint(1, Tag.query.count()))
             if tag not in photo.tags:
-                photo.tags.appen(tag)
+                photo.tags.append(tag)
 
         db.session.add(photo)
     db.session.commit()

@@ -4,8 +4,7 @@ from PIL import Image
 
 from urllib.parse import urljoin, urlparse
 from flask import request, redirect, url_for, flash, current_app
-from itsdangerous import TimedSerializer as Serializer
-from itsdangerous import BadSignature, SignatureExpired
+from authlib.jose import jwt, JoseError
 
 from albumy.extensions import db
 from albumy.models import User
@@ -14,21 +13,25 @@ from albumy.settings import Operations
 
 def generate_token(user, operation, expire_in=None, **kwargs):
     """生成用于邮箱验证的JWT（json web token）"""
-    s = Serializer(current_app.config['SECRET_KEY'], expire_in)
-
+    # 签名算法
+    header = {'alg': 'HS256'}
+    # 用于签名的密钥
+    key = current_app.config['SECRET_KEY']
     # 待签名的数据负载
     data = {'id': user.id, 'operation': operation}
     data.update(**kwargs)
-    return s.dumps(data)
+
+    return jwt.encode(header=header, payload=data, key=key)
 
 
 def validate_token(user, token, operation, new_password=None):
     """用于验证用户注册和用户修改密码或邮箱的token, 并完成相应的确认操作"""
-    s = Serializer(current_app.config['SECRET_KEY'])
+    key = current_app.config['SECRET_KEY']
 
     try:
-        data = s.loads(token)
-    except (SignatureExpired, BadSignature):
+        data = jwt.decode(token, key)
+        print(data)
+    except JoseError:
         return False
 
     if operation != data.get('operation') or user.id != data.get('id'):
@@ -45,6 +48,7 @@ def validate_token(user, token, operation, new_password=None):
         if User.query.filter_by(email=new_email).first() is not None:
             return False
         user.email = new_email
+        user.confirmed = True
     else:
         return False
 

@@ -25,7 +25,7 @@ def send_mail(to, subject, template, **kwargs):
 
 
 def send_confirm_email(user, token, to=None):
-    send_mail(to=to or user.email, subject='Email Configrm', template='emails/confirm',
+    send_mail(to=to or user.email, subject='Email Confirm', template='emails/confirm',
               user=user, token=token)
 
 

@@ -53,15 +53,15 @@ class Role(db.Model):
                     permission = Permission(name=permission_name)
                     db.session.add(permission)
                 role.permissions.append(permission)
-        db.session.comit()
+        db.session.commit()
 
 
 class Collect(db.Model):
     """关系模型，在User和Photo之间建一个收藏关系，它类似于关系表，但是可以储存额外字段，是一个中介"""
     # 收藏者id
-    collector_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    collector_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     # 收藏的photo
-    collected_id = db.Column(db.Integer, db.ForeignKey('photo.id'))
+    collected_id = db.Column(db.Integer, db.ForeignKey('photo.id'), primary_key=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     # 关系属性：收藏者和被收藏的图片, 使用lazy=joined进行预加载，对关系两侧的表进行联结操作，
@@ -120,7 +120,7 @@ class User(db.Model, UserMixin):
     comments = db.relationship('Comment', back_populates='author', cascade='all')
     notifications = db.relationship('Notification', back_populates='receiver', cascade='all')
     collections = db.relationship('Collect', back_populates='collector', cascade='all')
-    following = db.relationship('Follow', foreign_keys=[Follow.follwer_id], back_populates='follower',
+    following = db.relationship('Follow', foreign_keys=[Follow.follower_id], back_populates='follower',
                                 lazy='dynamic', cascade='all')  # 我正在关注的人
     followers = db.relationship('Follow', foreign_keys=[Follow.followed_id], back_populates='followed',
                                 lazy='dynamic', cascade='all')  # 关注我的人
@@ -253,7 +253,7 @@ class Photo(db.Model):
     flag = db.Column(db.Integer, default=0, comment='图片被举报次数计数器')
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
-    author = db.relationship('User', back_populatest='photos')
+    author = db.relationship('User', back_populates='photos')
     comments = db.relationship('Comment', back_populates='photo', cascade='all')
     collectors = db.relationship('Collect', back_populates='collected', cascade='all')
     tags = db.relationship('Tag', secondary=tagging, back_populates='photos')
@@ -281,7 +281,7 @@ class Comment(db.Model):
     photo = db.relationship('Photo', back_populates='comments')
     author = db.relationship('User', back_populates='comments')
     replies = db.relationship('Comment', back_populates='replied', cascade='all')
-    replied = db.relationship('Comment', back_populates='replies', remote_sid=[id])
+    replied = db.relationship('Comment', back_populates='replies', remote_side=[id])
 
 
 class Notification(db.Model):
@@ -295,7 +295,7 @@ class Notification(db.Model):
     receiver = db.relationship('User', back_populates='notifications')
 
 
-@db.events.listens_for(User, 'after_delete', named=True)
+@db.event.listens_for(User, 'after_delete', named=True)
 def delete_avatars(**kwargs):
     """监听用户注销，删除用户后，自动删除用户头像文件图片"""
     target = kwargs['target']

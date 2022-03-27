@@ -70,7 +70,7 @@ def register():
         db.session.commit()
         # 发送邮件进行确认
         token = generate_token(user, operation=Operations.CONFIRM)
-        send_confirm_email(user, token)
+        send_confirm_email(user, token, to=user.email)
         flash('Confirm email sent, check your inbox.', 'info')
         return redirect(url_for('auth.login'))
     return render_template('auth/register.html', form=form)
@@ -85,9 +85,12 @@ def confirm(token):
     if validate_token(user=current_user, token=token, operation=Operations.CONFIRM):  # 执行user.confirmed = True
         flash('Account confirmed.', 'success')
         return redirect(url_for('main.index'))
+    elif validate_token(user=current_user, token=token, operation=Operations.CHANGE_EMAIL):
+        flash('Email changed.', 'success')
+        return redirect(url_for('main.index'))
     else:
         flash('Invalid or expired link.', 'danger')
-        return redirect(url_for('auth.resent_confirm_email'))
+        return redirect(url_for('auth.resend_confirm_email'))
 
 
 @auth_bp.route('/resend-confirm-email')

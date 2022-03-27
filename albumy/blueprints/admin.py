@@ -139,7 +139,7 @@ def manage_user():
     return render_template('admin/manage_user.html', pagination=pagination, users=users)
 
 
-@admin_bp.route('/manage/photo', defaults={'order', 'by_flag'})  # by_flag, by_time, 默认按照举报数量排序
+@admin_bp.route('/manage/photo', defaults={'order': 'by_flag'})  # by_flag, by_time, 默认按照举报数量排序
 @admin_bp.route('/manage/photo/<order>')
 @login_required
 @permission_required('MODERATE')

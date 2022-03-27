@@ -62,7 +62,7 @@ def follow(username):
 @user_bp.route('/unfollow/<username>', methods=['POST'])
 @login_required
 def unfollow(username):
-    user = User.query.filter_by(username=username).forst_or_404()
+    user = User.query.filter_by(username=username).first_or_404()
     if not current_user.is_following(user):
         flash('Not follow yet.', 'info')
         return redirect(url_for('.index', username=username))

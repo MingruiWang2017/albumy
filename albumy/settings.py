@@ -29,7 +29,7 @@ class BaseConfig(object):
     ALBUMY_MANAGE_COMMENT_PER_PAGE = 30
     ALBUMY_SEARCH_RESULT_PER_PAGE = 20
     ALBUMY_MAIL_SUBJECT_PREFIX = '[Albumy]'
-    ALBUMY_UPLOAD_PATH = os.path.join(basedir, 'iploads')
+    ALBUMY_UPLOAD_PATH = os.path.join(basedir, 'uploads')
     ALBUMY_PHOTO_SIZE = {'small': 400,
                          'medium': 800}
     ALBUMY_PHOTO_SUFFIX = {

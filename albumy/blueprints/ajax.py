@@ -8,7 +8,7 @@ ajax_bp = Blueprint('ajax', __name__)
 
 
 @ajax_bp.route('/notifications-count')
-def notification_count():
+def notifications_count():
     """查询当前用户的未读消息数量"""
     if not current_user.is_authenticated:
         return jsonify(message='Login required.'), 403

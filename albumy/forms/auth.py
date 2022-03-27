@@ -18,7 +18,7 @@ class RegisterForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Length(1, 254), Email()])
     username = StringField('Username', validators=[DataRequired(), Length(1, 20),
                                                    Regexp('^[a-zA-Z0-9]*$',
-                                                          messgae='The username should contain only a-z, A-Z and 0-9.')])
+                                                          message='The username should contain only a-z, A-Z and 0-9.')])
     password = PasswordField('Password', validators=[DataRequired(), Length(8, 128),
                                                      EqualTo('password2')])  # EqualTo验证器，用于确保和输入字段值相同
     password2 = PasswordField('Confirm password', validators=[DataRequired()])

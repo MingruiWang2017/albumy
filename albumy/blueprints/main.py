@@ -55,11 +55,11 @@ def search():
     page = request.args.get('page', 1, type=int)
     per_page = current_app.config['ALBUMY_SEARCH_RESULT_PER_PAGE']
     if category == 'user':
-        pagination = User.query.whooshee_search(q).pagination(page, per_page)
+        pagination = User.query.whooshee_search(q).paginate(page, per_page)
     elif category == 'tag':
-        pagination = Tag.query.whooshee_search(q).pagination(page, per_page)
+        pagination = Tag.query.whooshee_search(q).paginate(page, per_page)
     else:
-        pagination = Photo.query.whooshee_search(q).pagination(page, per_page)
+        pagination = Photo.query.whooshee_search(q).paginate(page, per_page)
     results = pagination.items
     return render_template('main/search.html', q=q, results=results, pagination=pagination, category=category)
 
@@ -138,7 +138,7 @@ def upload():
     return render_template('main/upload.html')
 
 
-@main_bp.route('/photo/<int:photo_id')
+@main_bp.route('/photo/<int:photo_id>')
 def show_photo(photo_id):
     """显示图片详情页"""
     photo = Photo.query.get_or_404(photo_id)
@@ -299,7 +299,7 @@ def new_comment(photo_id):
     return redirect(url_for('.show_photo', photo_id=photo_id, page=page))
 
 
-@main_bp.route('/photo/<int:photo_id>/tag/new', method=['POST'])
+@main_bp.route('/photo/<int:photo_id>/tag/new', methods=['POST'])
 @login_required
 @confirm_required
 def new_tag(photo_id):
@@ -370,7 +370,7 @@ def delete_photo(photo_id):
     if photo_n is None:
         photo_p = Photo.query.with_parent(photo.author).filter(Photo.id > photo_id).order_by(Photo.id.asc()).first()
         if photo_p is None:
-            return redirect(url_for('user.index', username=photo.author.usernaem))
+            return redirect(url_for('user.index', username=photo.author.username))
         return redirect(url_for('.show_photo', photo_id=photo_p.id))
     return redirect(url_for('.show_photo', photo_id=photo_n.id))
 
@@ -401,7 +401,7 @@ def show_tag(tag_id, order):
     photos = pagination.items
 
     if order == 'by_collects':
-        photos.sort(key=lambda x: len(x.collectors), reversed=True)
+        photos.sort(key=lambda x: len(x.collectors), reverse=True)
         order_rule = 'collects'
     return render_template('main/tag.html', tag=tag, pagination=pagination,
                            photos=photos, order_rule=order_rule)
