@@ -52,7 +52,7 @@ def search():
         return redirect_back()
 
     category = request.args.get('category', 'photo')  # 搜索类别：photo, user, tag
-    page = request.args.get('page', 1, type=init)
+    page = request.args.get('page', 1, type=int)
     per_page = current_app.config['ALBUMY_SEARCH_RESULT_PER_PAGE']
     if category == 'user':
         pagination = User.query.whooshee_search(q).pagination(page, per_page)
@@ -254,7 +254,7 @@ def show_collectors(photo_id):
 @confirm_required
 def edit_description(photo_id):
     photo = Photo.query.get_or_404(photo_id)
-    if current_user != photo.author:
+    if current_user != photo.author and not current_user.can('MODERATE'):
         abort(403)
 
     form = DescriptionForm()
@@ -304,7 +304,7 @@ def new_comment(photo_id):
 @confirm_required
 def new_tag(photo_id):
     photo = Photo.query.get_or_404(photo_id)
-    if current_user != photo.author:
+    if current_user != photo.author and not current_user.can('MODERATE'):
         abort(403)
 
     form = TagForm()
@@ -359,7 +359,7 @@ def reply_comment(comment_id):
 @login_required
 def delete_photo(photo_id):
     photo = Photo.query.get_or_404(photo_id)
-    if current_user != photo.author:
+    if current_user != photo.author and not current_user.can('MODERATE'):
         abort(403)
 
     db.session.delete(photo)
@@ -380,7 +380,8 @@ def delete_photo(photo_id):
 @confirm_required
 def delete_comment(comment_id):
     comment = Comment.query.get_or_404(comment_id)
-    if current_user != comment.author and current_user != comment.photo.author:  # ???
+    if current_user != comment.author and current_user != comment.photo.author \
+            and not current_user.can('MODERATE'):
         abort(403)
     db.session.delete(comment)
     db.session.commit()
@@ -412,7 +413,7 @@ def show_tag(tag_id, order):
 def delete_tag(photo_id, tag_id):
     tag = Tag.query.get_or_404(tag_id)
     photo = Photo.query.get_or_404(photo_id)
-    if current_user != photo.author:
+    if current_user != photo.author and not current_user.can('MODERATE'):
         abort(403)
     photo.tags.remove(tag)
     db.session.commit()

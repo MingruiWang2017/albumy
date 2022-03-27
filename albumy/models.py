@@ -105,6 +105,8 @@ class User(db.Model, UserMixin):
     avatar_raw = db.Column(db.String(64), comment='用户自定义上传的头像名')
 
     confirmed = db.Column(db.Boolean, default=False, comment='用户是否已通过邮箱验证')
+    locked = db.Column(db.Boolean, default=False, comment='用户是否被锁定')
+    active = db.Column(db.Boolean, default=True, comment='用户是否活跃，False表示用户被封禁')
 
     public_collections = db.Column(db.Boolean, default=True, comment='公开收藏开关')
     receive_comment_notification = db.Column(db.Boolean, default=True, comment='接收评论消息开关')
@@ -188,6 +190,26 @@ class User(db.Model, UserMixin):
         """判断当前图片是否已经被收藏"""
         return Collect.query.with_parent(self).filter_by(collected_id=photo.id).first() is not None
 
+    def lock(self):
+        """锁定用户"""
+        self.locked = True
+        self.role = Role.query.filter_by(name='Locked').first()
+        db.session.commit()
+
+    def unlock(self):
+        self.locked = False
+        self.role = Role.query.filter_by(name='User').first()
+        db.session.commit()
+
+    def block(self):
+        """封禁用户"""
+        self.active = False
+        db.session.commit()
+
+    def unblock(self):
+        self.active = True
+        db.session.commit()
+
     def generate_avatar(self):
         avatar = Identicon()
         # 生成三种尺寸的头像保存到AVATARS_SAVE_PATH，返回文件名
@@ -201,6 +223,11 @@ class User(db.Model, UserMixin):
     def is_admin(self):
         """判断用户是否为管理员"""
         return self.role.name == 'Administrator'
+
+    @property
+    def is_active(self):
+        """重写UserMixin的is_active属性，判断用户是否被封禁，如果是False，则会拒绝用户登录"""
+        return self.active
 
     def can(self, permission_name):
         """判断用户是否具有某项权限"""

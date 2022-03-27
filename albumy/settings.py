@@ -40,6 +40,8 @@ class BaseConfig(object):
     SECRET_KEY = os.getenv('SECRET_KEY', 'secret string')
     MAX_CONTENT_LENGTH = 3 * 1024 * 1204  # file size exceed to 3MB will return 413 error response
 
+    BOOTSTRAP_SERVER_LOCAL = True
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # 头像配置参数
